@@ -1,0 +1,26 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: thisfree autocode
+Bundle-SymbolicName: cn.thisfree.autocode;singleton:=true
+Bundle-Version: 1.0.0.beta
+Bundle-Activator: cn.thisfree.autocode.Activator
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.core.databinding,
+ org.eclipse.core.databinding.beans,
+ org.eclipse.core.databinding.observable,
+ org.eclipse.core.databinding.property,
+ org.eclipse.jface.databinding,
+ com.ibm.icu,
+ org.eclipse.core.resources
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Bundle-ClassPath: lib/mysql-connector-java-5[1].1.5-bin.jar,
+ .,
+ lib/freemarker.jar,
+ lib/swing2swt.jar,
+ lib/blancosqlformatter-0.1.0.jar,
+ lib/ojdbc5.jar,
+ lib/commons-logging-1.1.1.jar,
+ lib/commons-lang3-3.4.jar,
+ lib/commons-configuration2-2.0-beta1.jar
