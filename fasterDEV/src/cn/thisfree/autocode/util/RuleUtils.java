@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import cn.thisfree.faster.model.Rule;
+
 /**
  * 规则工具类
  * @author xiaolong.huang
@@ -65,7 +67,7 @@ public class RuleUtils {
 	}
 	
 	public static Rule getRuleByName(String name){
-		return new Rule(rulesMap.get(name));
+		return rulesMap.get(name);
 	}
 	
 }

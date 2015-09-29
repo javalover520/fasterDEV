@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.metamodel.schema.Column;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.viewers.CellEditor;
@@ -33,12 +34,10 @@ import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.wb.swt.ResourceManager;
 
-import cn.thisfree.autocode.model.ColumnModel;
-import cn.thisfree.autocode.model.TableModel;
 import cn.thisfree.autocode.util.AutoCodeDbUtils;
-import cn.thisfree.autocode.util.Rule;
 import cn.thisfree.autocode.util.RuleUtils;
 import cn.thisfree.autocode.util.StringUtils;
+import cn.thisfree.faster.model.Rule;
 import swing2swt.layout.BorderLayout;
 
 public class PageThree extends WizardPage {
@@ -47,7 +46,7 @@ public class PageThree extends WizardPage {
 	/**
 	 * 列信息
 	 */
-	List<ColumnModel> columnList = new ArrayList<ColumnModel>();
+	List<Column> columnList = new ArrayList<Column>();
 
 	private TableViewer tableViewer;
 	
@@ -66,7 +65,7 @@ public class PageThree extends WizardPage {
 		return tableViewer;
 	}
 
-	public List<ColumnModel> getColumnList() {
+	public List<Column> getColumnList() {
 		return columnList;
 	}
 
@@ -96,8 +95,8 @@ public class PageThree extends WizardPage {
             	if(index==-1 || index==0){
             		return;
             	}
-            	ColumnModel cur=columnList.get(index);
-            	ColumnModel up=columnList.get(index-1);
+            	Column cur=columnList.get(index);
+            	Column up=columnList.get(index-1);
             	columnList.set(index, up);
             	columnList.set(index-1, cur);
             	tableViewer.refresh();
@@ -114,8 +113,8 @@ public class PageThree extends WizardPage {
             	if(index==-1 || index==columnList.size()-1){
             		return;
             	}
-            	ColumnModel cur=columnList.get(index);
-            	ColumnModel down=columnList.get(index+1);
+            	Column cur=columnList.get(index);
+            	Column down=columnList.get(index+1);
             	columnList.set(index, down);
             	columnList.set(index+1, cur);
             	tableViewer.refresh();
@@ -232,7 +231,7 @@ public class PageThree extends WizardPage {
 			columnsTable.getItem(row).setForeground(0, gray);
 			columnsTable.getItem(row).setForeground(1, gray);
 			columnsTable.getItem(row).setForeground(2, gray);
-			if(columnList.get(row).getRule().isReadOnly()){
+			if(columnList.get(row).getRule().getReadOnly()){
 				columnsTable.getItem(row).setForeground(columnsTable.getColumnCount()-1, gray);
 			}
 		}
@@ -275,7 +274,7 @@ class ColumnLabelProvider extends LabelProvider implements ITableLabelProvider {
 	 * .Object, int)
 	 */
 	public Image getColumnImage(Object element, int columnIndex) {
-		ColumnModel col = (ColumnModel) element;
+		Column col = (Column) element;
 		String property=PageThree.columnNames[columnIndex];
 		if("isPrimaryKey".equals(property)){//是否主键
 			return getImage(col.getIsPrimaryKey());
@@ -300,7 +299,7 @@ class ColumnLabelProvider extends LabelProvider implements ITableLabelProvider {
 	}
 
 	public String getColumnText(Object element, int columnIndex) {
-		ColumnModel col = (ColumnModel) element;
+		Column col = (Column) element;
 		String property=PageThree.columnNames[columnIndex];
 		if("columnName".equals(property)){//是否主键
 			return col.getColumnName();
@@ -329,15 +328,15 @@ class ColumnLabelProvider extends LabelProvider implements ITableLabelProvider {
 		}
 		
 		if("ruleName".equals(property)){//是否可编辑
-			return col.getRule().getName();
+			return ColumnRuleUtils.getRule(col.getColumnName()).getRuleName();
 		}
 		
 		if("ruleDesc".equals(property)){//规则描述
-			return col.getRule().getRemark();
+			return ColumnRuleUtils.getRule(col.getColumnName()).getRuleRemark();
 		}
 		
 		if("ruleValue".equals(property)){//是否可编辑
-			return col.getRule().getValue();
+			return ColumnRuleUtils.getRule(col.getColumnName()).getRuleValue();
 		}
 		return "";
 	}
@@ -354,9 +353,13 @@ class ColumnCellModifier implements ICellModifier {
 	}
 
 	public boolean canModify(Object element, String property) {
-		ColumnModel col = (ColumnModel) element;
-		if("ruleValue".equals(property) && col.getRule().isReadOnly()){
-			return false;
+		Column col = (Column) element;
+		if("ruleValue".equals(property)){
+			String name=col.getColumnName();
+			Rule rule=ColumnRuleUtils.getRule(name);
+			if(rule.getReadOnly()){
+				return false;
+			}
 		}
 		return true;
 	}
@@ -371,7 +374,7 @@ class ColumnCellModifier implements ICellModifier {
      }
 
 	public Object getValue(Object element, String property) {
-		ColumnModel col = (ColumnModel) element;
+		Column col = (Column) element;
 		
 		if("columnName".equals(property)){//列名
 			return col.getColumnName();
@@ -421,15 +424,20 @@ class ColumnCellModifier implements ICellModifier {
 			return col.getDictKey()==null?"":col.getDictKey();
 		}
 		if("ruleName".equals(property)){//规则名
-			return getRuleIndex(col.getRule().getName());
+			String name=col.getColumnName();
+			return getRuleIndex(ColumnRuleUtils.getRule(name).getRuleName());
 		}
 		
 		if("ruleValue".equals(property)){//规则值
-			return col.getRule().getValue()==null?"":col.getRule().getValue();
+			String name=col.getColumnName();
+			Rule rule=ColumnRuleUtils.getRule(name);
+			return rule.getRuleValue()==null?"":rule.getRuleValue();
 		}
 		
 		if("ruleDesc".equals(property)){//规则描述
-			return col.getRule().getRemark()==null?"":col.getRule().getRemark();
+			String name=col.getColumnName();
+			Rule rule=ColumnRuleUtils.getRule(name);
+			return rule.getRuleRemark()==null?"":rule.getRuleRemark();
 		}
 
 		return "";
@@ -437,7 +445,7 @@ class ColumnCellModifier implements ICellModifier {
 
 	public void modify(Object element, String property, Object value) {
 		TableItem item = (TableItem) element;
-		ColumnModel col = (ColumnModel)item.getData();
+		Column col = (Column)item.getData();
 		
 		if("columnComment".equals(property)){//列注释
 			col.setColumnComment(StringUtils.trim((String)value));
@@ -479,12 +487,13 @@ class ColumnCellModifier implements ICellModifier {
                 return ;
             }
             Rule rule=new Rule(RuleUtils.getRuleByName(RuleUtils.getRuleNames()[comboIndex]));
-            col.setRule(rule);
+            //col.setRule(rule);
+            ColumnRuleUtils.setRule(col.getColumnName(), rule);
             
             int row=item.getParent().indexOf(item);
             Color gray = Display.getDefault().getSystemColor(SWT.COLOR_DARK_GRAY);
             Color black = Display.getDefault().getSystemColor(SWT.COLOR_BLACK);
-            if(rule.isReadOnly()){
+            if(rule.getReadOnly()){
             	item.getParent().getItem(row).setForeground(item.getParent().getColumnCount()-1, gray);
             }else{
             	item.getParent().getItem(row).setForeground(item.getParent().getColumnCount()-1, black);
@@ -492,10 +501,12 @@ class ColumnCellModifier implements ICellModifier {
 		}
 		
 		if("ruleDesc".equals(property)){//规则值
-			col.getRule().setRemark(StringUtils.trim(value+""));
+			String name=col.getColumnName();
+			ColumnRuleUtils.getRule(name).setRuleRemark(StringUtils.trim(value+""));
 		}
 		if("ruleValue".equals(property)){//规则值
-			col.getRule().setValue(StringUtils.trim(value+""));
+			String name=col.getColumnName();
+			ColumnRuleUtils.getRule(name).setRuleValue(StringUtils.trim(value+""));
 		}
 
 		this.pageThree.getTableViewer().update(col, null);

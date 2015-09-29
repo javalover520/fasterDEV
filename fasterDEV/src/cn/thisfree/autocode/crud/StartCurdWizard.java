@@ -9,10 +9,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.metamodel.schema.Column;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.wizard.Wizard;
 
-import cn.thisfree.autocode.model.ColumnModel;
 import cn.thisfree.autocode.model.TableConfigModel;
 import cn.thisfree.autocode.model.TableModel;
 import cn.thisfree.autocode.util.FreeMakerUtils;
@@ -73,9 +73,9 @@ public class StartCurdWizard extends Wizard {
 		data.put("table", tableconfig);
 		
 		//设置主键
-		for(ColumnModel col:pageThree.getColumnList()){
-			if(col.getIsPrimaryKey()){
-				tableconfig.setKey(col);
+		for(Column col:pageThree.getColumnList()){
+			if(col.isPrimaryKey()){
+//				tableconfig.setKey(col);
 				break;
 			}
 		}

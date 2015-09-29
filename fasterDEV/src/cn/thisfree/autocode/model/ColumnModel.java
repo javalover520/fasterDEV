@@ -1,8 +1,9 @@
 package cn.thisfree.autocode.model;
 
-import cn.thisfree.autocode.util.Rule;
 import cn.thisfree.autocode.util.Sql2JavaUtils;
 import cn.thisfree.autocode.util.StringUtils;
+
+import com.thisfree.faster.model.Rule;
 
 public class ColumnModel extends AbstractModelObject {
 	private String columnName;//列名

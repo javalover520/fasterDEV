@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.metamodel.schema.Column;
 import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.viewers.CellEditor;
 import org.eclipse.jface.viewers.CheckboxCellEditor;
@@ -35,9 +36,9 @@ import org.eclipse.wb.swt.ResourceManager;
 import cn.thisfree.autocode.model.ColumnModel;
 import cn.thisfree.autocode.model.TableModel;
 import cn.thisfree.autocode.util.AutoCodeDbUtils;
-import cn.thisfree.autocode.util.Rule;
 import cn.thisfree.autocode.util.RuleUtils;
 import cn.thisfree.autocode.util.StringUtils;
+import cn.thisfree.faster.model.Rule;
 import swing2swt.layout.BorderLayout;
 
 public class PageThree extends WizardPage {
@@ -46,7 +47,7 @@ public class PageThree extends WizardPage {
 	/**
 	 * 列信息
 	 */
-	List<ColumnModel> columnList = new ArrayList<ColumnModel>();
+	List<Column> columnList = new ArrayList<Column>();
 
 	private TableViewer tableViewer;
 	
@@ -65,7 +66,7 @@ public class PageThree extends WizardPage {
 		return tableViewer;
 	}
 
-	public List<ColumnModel> getColumnList() {
+	public List<Column> getColumnList() {
 		return columnList;
 	}
 
@@ -95,8 +96,8 @@ public class PageThree extends WizardPage {
             	if(index==-1 || index==0){
             		return;
             	}
-            	ColumnModel cur=columnList.get(index);
-            	ColumnModel up=columnList.get(index-1);
+            	Column cur=columnList.get(index);
+            	Column up=columnList.get(index-1);
             	columnList.set(index, up);
             	columnList.set(index-1, cur);
             	tableViewer.refresh();
@@ -113,8 +114,8 @@ public class PageThree extends WizardPage {
             	if(index==-1 || index==columnList.size()-1){
             		return;
             	}
-            	ColumnModel cur=columnList.get(index);
-            	ColumnModel down=columnList.get(index+1);
+            	Column cur=columnList.get(index);
+            	Column down=columnList.get(index+1);
             	columnList.set(index, down);
             	columnList.set(index+1, cur);
             	tableViewer.refresh();
@@ -231,7 +232,7 @@ public class PageThree extends WizardPage {
 			columnsTable.getItem(row).setForeground(0, gray);
 			columnsTable.getItem(row).setForeground(1, gray);
 			columnsTable.getItem(row).setForeground(2, gray);
-			if(columnList.get(row).getRule().isReadOnly()){
+			if(columnList.get(row).getRule().getReadOnly()){
 				columnsTable.getItem(row).setForeground(columnsTable.getColumnCount()-1, gray);
 			}
 		}
@@ -299,16 +300,16 @@ class ColumnLabelProvider extends LabelProvider implements ITableLabelProvider {
 	}
 
 	public String getColumnText(Object element, int columnIndex) {
-		ColumnModel col = (ColumnModel) element;
+		Column col = (Column) element;
 		String property=PageThree.columnNames[columnIndex];
 		if("columnName".equals(property)){//是否主键
-			return col.getColumnName();
+			return col.getName();
 		}
 		if("columnType".equals(property)){//是否主键
-			return col.getColumnType();
+			return col.getType().getName();
 		}
 		if("length".equals(property)){//字段长度
-			return col.getDatasize()+"";
+			return col.getColumnSize()+"";
 		}
 		
 		if("javaName".equals(property)){//是否显示列表
@@ -316,15 +317,15 @@ class ColumnLabelProvider extends LabelProvider implements ITableLabelProvider {
 		}
 		
 		if("javaType".equals(property)){//是否显示列表
-			return col.getJavaType();
+			return col.getType().getJavaEquivalentClass().getName();
 		}
 		
 		if("columnComment".equals(property)){//是否作为条件查询
-			return col.getColumnComment() == null ? "" : col.getColumnComment();
+			return col.getRemarks();
 		}
 		
 		if("dictKey".equals(property)){//是否可编辑
-			return col.getDictKey();
+			return "";
 		}
 		
 		if("ruleName".equals(property)){//是否可编辑
@@ -353,8 +354,8 @@ class ColumnCellModifier implements ICellModifier {
 	}
 
 	public boolean canModify(Object element, String property) {
-		ColumnModel col = (ColumnModel) element;
-		if("ruleValue".equals(property) && col.getRule().isReadOnly()){
+		Column col = (Column) element;
+		if("ruleValue".equals(property) && col.getRule().getReadOnly()){
 			return false;
 		}
 		return true;
@@ -370,22 +371,22 @@ class ColumnCellModifier implements ICellModifier {
      }
 
 	public Object getValue(Object element, String property) {
-		ColumnModel col = (ColumnModel) element;
+		Column col = (Column) element;
 		
 		if("columnName".equals(property)){//列名
-			return col.getColumnName();
+			return col.getName();
 		}
 		
 		if("columnType".equals(property)){//列名
-			return col.getColumnType();
+			return col.getType().getName();
 		}
 		
 		if("length".equals(property)){//字段长度
-			return col.getDatasize()+"";
+			return col.getColumnSize()+"";
 		}
 		
 		if("columnComment".equals(property)){//列注释
-			return col.getColumnComment();
+			return col.getRemarks();
 		}
 		
 		if("javaName".equals(property)){//Java名
@@ -393,42 +394,43 @@ class ColumnCellModifier implements ICellModifier {
 		}
 		
 		if("javaType".equals(property)){//Java类型
-			return col.getJavaType();
+			return col.getType().getJavaEquivalentClass().getName();
 		}
 		
 		if("isPrimaryKey".equals(property)){//是否主键
-			return col.getIsPrimaryKey();
+			return col.isPrimaryKey();
 		}
 		
 		if("isNotNull".equals(property)){//是否主键
-			return col.getIsNotNull();
+			return !col.isNullable();
 		}
 		
 		if("isList".equals(property)){//是否显示列表
-			return !"Y".equals(col.getIsList());
+			return col.getRule().getShowAsList();
 		}
 		
 		if("isQuery".equals(property)){//是否作为条件查询
-			return !"Y".equals(col.getIsQuery());
+			return col.getRule().getShowAsQuery();
 		}
 		
 		if("isEdit".equals(property)){//是否可编辑
-			return !"Y".equals(col.getIsEdit());
+			return col.getRule().getShowAsForm();
 		}
 		
 		if("dictKey".equals(property)){//数据字典
-			return col.getDictKey()==null?"":col.getDictKey();
+//			return col.getDictKey()==null?"":col.getDictKey();
+			return null;
 		}
 		if("ruleName".equals(property)){//规则名
-			return getRuleIndex(col.getRule().getName());
+			return col.getRule().getName();
 		}
 		
 		if("ruleValue".equals(property)){//规则值
-			return col.getRule().getValue()==null?"":col.getRule().getValue();
+			return col.getRule().getValue();
 		}
 		
 		if("ruleDesc".equals(property)){//规则描述
-			return col.getRule().getRemark()==null?"":col.getRule().getRemark();
+			return col.getRule().getRemark();
 		}
 
 		return "";
@@ -436,42 +438,42 @@ class ColumnCellModifier implements ICellModifier {
 
 	public void modify(Object element, String property, Object value) {
 		TableItem item = (TableItem) element;
-		ColumnModel col = (ColumnModel)item.getData();
+		Column col = (Column)item.getData();
 		
-		if("columnComment".equals(property)){//列注释
-			col.setColumnComment(StringUtils.trim((String)value));
-		}
-		
-		if("javaName".equals(property)){//Java名
-			col.setJavaName(StringUtils.trim((String)value));
-		}
-		
-		if("javaType".equals(property)){//Java类型
-			col.setJavaType(StringUtils.trim((String)value));
-		}
-		
-		if("isPrimaryKey".equals(property)){//是否主键
-			col.setPrimaryKey(((Boolean) value).booleanValue());
-		}
-		if("isNotNull".equals(property)){//是否主键
-			col.setNotNull(((Boolean) value).booleanValue());
-		}
-		
-		if("isList".equals(property)){//是否显示列表
-			col.setIsList(((Boolean) value).booleanValue()?"N":"Y");
-		}
-		
-		if("isQuery".equals(property)){//是否作为条件查询
-			col.setIsQuery(((Boolean) value).booleanValue()?"N":"Y");
-		}
-		
-		if("isEdit".equals(property)){//是否可编辑
-			col.setIsEdit(((Boolean) value).booleanValue()?"N":"Y");
-		}
-		
-		if("dictKey".equals(property)){//数据字典
-			col.setDictKey(StringUtils.trim((String)value));
-		}
+//		if("columnComment".equals(property)){//列注释
+//			col.setColumnComment(StringUtils.trim((String)value));
+//		}
+//		
+//		if("javaName".equals(property)){//Java名
+//			col.setJavaName(StringUtils.trim((String)value));
+//		}
+//		
+//		if("javaType".equals(property)){//Java类型
+//			col.setJavaType(StringUtils.trim((String)value));
+//		}
+//		
+//		if("isPrimaryKey".equals(property)){//是否主键
+//			col.setPrimaryKey(((Boolean) value).booleanValue());
+//		}
+//		if("isNotNull".equals(property)){//是否主键
+//			col.setNotNull(((Boolean) value).booleanValue());
+//		}
+//		
+//		if("isList".equals(property)){//是否显示列表
+//			col.setIsList(((Boolean) value).booleanValue()?"N":"Y");
+//		}
+//		
+//		if("isQuery".equals(property)){//是否作为条件查询
+//			col.setIsQuery(((Boolean) value).booleanValue()?"N":"Y");
+//		}
+//		
+//		if("isEdit".equals(property)){//是否可编辑
+//			col.setIsEdit(((Boolean) value).booleanValue()?"N":"Y");
+//		}
+//		
+//		if("dictKey".equals(property)){//数据字典
+//			col.setDictKey(StringUtils.trim((String)value));
+//		}
 		if("ruleName".equals(property)){//规则名
 			Integer comboIndex = (Integer)value;
             if(comboIndex.intValue() == -1){
@@ -483,7 +485,7 @@ class ColumnCellModifier implements ICellModifier {
             int row=item.getParent().indexOf(item);
             Color gray = Display.getDefault().getSystemColor(SWT.COLOR_DARK_GRAY);
             Color black = Display.getDefault().getSystemColor(SWT.COLOR_BLACK);
-            if(rule.isReadOnly()){
+            if(rule.getReadOnly()){
             	item.getParent().getItem(row).setForeground(item.getParent().getColumnCount()-1, gray);
             }else{
             	item.getParent().getItem(row).setForeground(item.getParent().getColumnCount()-1, black);
